@@ -1,4 +1,5 @@
 from django.db import models
+from users.models import User
 
 
 class Ingredient(models.Model):
@@ -60,8 +61,10 @@ class Tag(models.Model):
 class Recipe(models.Model):
     """Класс Рецепт."""
 
-    author = models.CharField(
-        max_length=128,
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='recipes',
         verbose_name='Автор рецепта',
         help_text='Обязательное поле',
     )
@@ -90,6 +93,7 @@ class Recipe(models.Model):
 
     ingredients = models.ManyToManyField(
         Ingredient,
+        through='RecipeIngredient',
         verbose_name='Ингредиенты',
         help_text='Обязательное поле',
         blank=False,
@@ -101,7 +105,7 @@ class Recipe(models.Model):
         help_text='Обязательное поле',
         blank=False,
     )
-    
+
     cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления в минутах',
         help_text='Обязательное поле',
@@ -116,3 +120,85 @@ class Recipe(models.Model):
 
     def __str__(self):
         return f"Рецепт: {self.name}. Автор: {self.author.username}"
+
+
+class FavoriteRecipe(models.Model):
+    """
+    Класс избранных рецептов пользователя.
+    Модель связывает Recipe и User.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorite_recipes',
+        verbose_name='Пользователь',
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='users_recipes',
+        verbose_name='Рецепт',
+    )
+
+    class Meta:
+        verbose_name = 'Избранный рецепт'
+        verbose_name_plural = 'Избранные рецепты'
+
+    def __str__(self):
+        return f'{self.user.username} добавил {self.recipe.name} в избраннное'
+
+
+class ShoppingCart(models.Model):
+    """
+    Класс корзины пользователя, куда он положил нужный рецепт.
+    Модель связывает User и Recipe.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='in_shopping_carts',
+        verbose_name='Рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+
+    def __str__(self):
+        return (f'{self.user.username} добавил'
+                f'{self.recipe.name} в список покупок')
+
+
+class RecipeIngredient(models.Model):
+    """Класс для связи модели Recipe и модели Ingredient."""
+
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='ingredient_amounts',
+        verbose_name='Рецепт'
+    )
+    ingredient = models.ForeignKey(
+        Ingredient,
+        on_delete=models.CASCADE,
+        related_name='used_in_recipes',
+        verbose_name='Ингредиент'
+    )
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        blank=False,
+        null=False,
+    )
+
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Количество ингредиентов в рецепте'
+
+    def __str__(self):
+        return f'{self.recipe.name} - {self.ingredient.name} ({self.amount})'
