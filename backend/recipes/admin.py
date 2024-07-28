@@ -8,7 +8,7 @@ from .models import (Ingredient, FavoriteRecipe, Recipe,
 class IngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'measurement_unit')
     search_fields = ('name',)
-    ordering = ('id',)
+    ordering = ('name',)
 
 
 @admin.register(FavoriteRecipe)
