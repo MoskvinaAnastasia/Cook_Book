@@ -1,6 +1,31 @@
+from djoser.views import UserViewSet
 from rest_framework import viewsets
-from api.serializers import (IngredientSerializer, TagSerializer,)
+from rest_framework.permissions import AllowAny
+from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
+                             IngredientSerializer, TagSerializer,)
+from api.pagination import LimitPagePagination
 from recipes.models import (Ingredient, Tag,)
+
+
+class CustomUserViewSet(UserViewSet):
+    """Вьюсет для регистрации пользователя."""
+
+    serializer_class = CustomUserCreateSerializer
+
+
+class CustomUserProfileViewSet(UserViewSet):
+    """Вьюсет для получения информации о пользователе."""
+
+    serializer_class = CustomUserSerializer
+    lookup_field = 'id'
+
+
+class UserListViewSet(UserViewSet):
+    """Вьюсет для получения списка пользователей с пагинацией."""
+
+    serializer_class = CustomUserSerializer
+    pagination_class = LimitPagePagination
+    permission_classes = (AllowAny, )
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -10,6 +35,8 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (AllowAny, )
+    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
