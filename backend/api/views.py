@@ -1,8 +1,10 @@
 from djoser.views import UserViewSet
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly,)
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
                              IngredientSerializer, TagSerializer,)
 from api.pagination import LimitPagePagination
@@ -25,20 +27,29 @@ class CustomUserViewSet(UserViewSet):
     pagination_class = LimitPagePagination
 
     def get_permissions(self):
-        if self.action in ['create', 'retrieve', 'list',]:
-            self.permission_classes = [AllowAny]
+        if self.action in ['create', 'retrieve', 'list']:
+            self.permission_classes = (AllowAny, )
         else:
-            self.permission_classes = [IsAuthenticatedOrReadOnly]
+            self.permission_classes = (IsAuthenticatedOrReadOnly, )
         return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'create':
             return CustomUserCreateSerializer
-        elif self.action == 'me' or self.action == 'retrieve':
+        elif self.action == 'retrieve':
             return CustomUserSerializer
         elif self.action == 'list':
             return CustomUserSerializer
         return super().get_serializer_class()
+    
+    @action(methods=['get'], detail=False,
+            permission_classes=[IsAuthenticated])
+    def me(self, request, *args, **kwargs):
+        """
+        Получение информации о текущем аутентифицированном пользователе.
+        """
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
