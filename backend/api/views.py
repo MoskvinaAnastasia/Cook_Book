@@ -1,31 +1,44 @@
 from djoser.views import UserViewSet
+from django.contrib.auth import get_user_model
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
                              IngredientSerializer, TagSerializer,)
 from api.pagination import LimitPagePagination
 from recipes.models import (Ingredient, Tag,)
 
+User = get_user_model()
+
 
 class CustomUserViewSet(UserViewSet):
-    """Вьюсет для регистрации пользователя."""
+    """
+    Вьюсет для работы с пользователями.
+    Обрабатываемые эндпоинты:
+    - GET /users/: Список всех пользователей (с пагинацией).
+    - POST /users/: Создание нового пользователя.
+    - GET /users/{id}/: Получение профиля пользователя по ID.
+    - GET /users/me/: Получение профиля текущего пользователя.
+    """
 
-    serializer_class = CustomUserCreateSerializer
-
-
-class CustomUserProfileViewSet(UserViewSet):
-    """Вьюсет для получения информации о пользователе."""
-
-    serializer_class = CustomUserSerializer
-    lookup_field = 'id'
-
-
-class UserListViewSet(UserViewSet):
-    """Вьюсет для получения списка пользователей с пагинацией."""
-
-    serializer_class = CustomUserSerializer
+    queryset = User.objects.all()
     pagination_class = LimitPagePagination
-    permission_classes = (AllowAny, )
+
+    def get_permissions(self):
+        if self.action in ['create', 'retrieve', 'list',]:
+            self.permission_classes = [AllowAny]
+        else:
+            self.permission_classes = [IsAuthenticatedOrReadOnly]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CustomUserCreateSerializer
+        elif self.action == 'me' or self.action == 'retrieve':
+            return CustomUserSerializer
+        elif self.action == 'list':
+            return CustomUserSerializer
+        return super().get_serializer_class()
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
