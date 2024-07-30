@@ -1,12 +1,17 @@
 from djoser.views import UserViewSet
+from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from rest_framework import status
 from rest_framework import viewsets
+from rest_framework.authtoken.models import Token
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly,)
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
-                             IngredientSerializer, TagSerializer,)
+                             IngredientSerializer, TagSerializer,
+                             TokenCreateSerializer, )
 from api.pagination import LimitPagePagination
 from recipes.models import (Ingredient, Tag,)
 
@@ -50,6 +55,31 @@ class CustomUserViewSet(UserViewSet):
         """
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+
+class TokenCreateView(APIView):
+    """
+    Вьюсет для получения токена авторизации.
+    """
+    permission_classes = (AllowAny, )
+    serializer_class = TokenCreateSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            password = serializer.validated_data['password']
+            user = authenticate(email=email, password=password)
+
+            if user:
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({'auth_token': token.key},
+                                status=status.HTTP_201_CREATED)
+            return Response({'detail': 'Неверные учетные данные.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
