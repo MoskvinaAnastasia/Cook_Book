@@ -1,3 +1,4 @@
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
@@ -28,7 +29,20 @@ class CustomUserSerializer(UserSerializer):
 
 class CustomUserCreateSerializer(UserCreateSerializer):
     """Сериализатор для регистрация пользователей."""
-    
+
+    email = serializers.EmailField(required=True)
+    username = serializers.CharField(
+        required=True,
+        validators=[UnicodeUsernameValidator()],
+        max_length=150
+    )
+    first_name = serializers.CharField(required=True,
+                                       max_length=150)
+    last_name = serializers.CharField(required=True,
+                                      max_length=150)
+    password = serializers.CharField(write_only=True,
+                                     required=True)
+
     class Meta(UserCreateSerializer.Meta):
         model = User
         fields = ('email', 'username', 'first_name', 'last_name', 'password')
@@ -51,6 +65,23 @@ class TokenCreateSerializer(serializers.Serializer):
         return attrs
 
 
+class PasswordChangeSerializer(serializers.Serializer):
+    """Сериализатор для изменения пароля."""
+
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        current_password = attrs.get('current_password')
+        user = self.context['request'].user
+
+        if not user.check_password(current_password):
+            raise serializers.ValidationError(
+                {"current_password": "Неправильный текущий пароль."})
+
+        return attrs
+
+
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
 
@@ -61,6 +92,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
+    
+    slug = serializers.SlugField(
+        validators=[UnicodeUsernameValidator()]
+    )
 
     class Meta:
         model = Tag

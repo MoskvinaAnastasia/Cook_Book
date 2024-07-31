@@ -33,7 +33,7 @@ class Tag(models.Model):
     """Класс Тег для группировки рецептов по тегам."""
 
     name = models.CharField(
-        max_length=128,
+        max_length=32,
         verbose_name='Название',
         help_text='Обязательное поле',
         unique=True,
@@ -42,7 +42,7 @@ class Tag(models.Model):
     )
 
     slug = models.SlugField(
-        max_length=128,
+        max_length=32,
         verbose_name='Слаг',
         help_text='Обязательное поле',
         unique=True,

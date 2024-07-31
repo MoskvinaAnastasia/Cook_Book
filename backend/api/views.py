@@ -4,21 +4,24 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly,)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
-                             IngredientSerializer, TagSerializer,
+                             IngredientSerializer, PasswordChangeSerializer,
+                             TagSerializer,
                              TokenCreateSerializer, )
 from api.pagination import LimitPagePagination
 from recipes.models import (Ingredient, Tag,)
 
+
 User = get_user_model()
 
 
-class CustomUserViewSet(UserViewSet):
+class CustomUserViewSet(viewsets.ModelViewSet):
     """
     Вьюсет для работы с пользователями.
     Обрабатываемые эндпоинты:
@@ -30,6 +33,7 @@ class CustomUserViewSet(UserViewSet):
 
     queryset = User.objects.all()
     pagination_class = LimitPagePagination
+    serializer_class = CustomUserSerializer
 
     def get_permissions(self):
         if self.action in ['create', 'retrieve', 'list']:
@@ -55,6 +59,21 @@ class CustomUserViewSet(UserViewSet):
         """
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @action(methods=['post'], detail=False,
+            permission_classes=[IsAuthenticated])
+    def set_password(self, request, *args, **kwargs):
+        """
+        Изменение пароля текущего пользователя.
+        """
+        serializer = PasswordChangeSerializer(data=request.data,
+                                              context={'request': request})
+        if serializer.is_valid():
+            user = request.user
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TokenCreateView(APIView):
@@ -84,7 +103,7 @@ class TokenCreateView(APIView):
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Получение списков тегов и информации о теге по id.
+    Вьюсет для получение списков тегов и информации о теге по id.
     Создание и редактирование тегов доступно только в админ-панеле.
     """
     queryset = Tag.objects.all()
@@ -95,7 +114,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Получение списка ингредиентов, информации об ингредиенте по id.
+    Вьюсет для получение списка ингредиентов, информации об ингредиенте по id.
     Создание и редактирование ингредиентов доступно только в админ-панеле.
     Доступен поиск по частичному вхождению в начале названия ингредиента.
     """

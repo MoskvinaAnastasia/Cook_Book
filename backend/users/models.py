@@ -6,21 +6,21 @@ class User(AbstractUser):
     """Класс кастомных пользователей."""
 
     first_name = models.CharField(
-        max_length=128,
+        max_length=150,
         verbose_name='Имя',
         help_text='Обязательное поле',
         blank=False,
         null=False,
     )
     last_name = models.CharField(
-        max_length=128,
+        max_length=150,
         verbose_name='Фамилия',
         help_text='Обязательное поле',
         blank=False,
         null=False,
     )
     username = models.CharField(
-        max_length=128,
+        max_length=150,
         verbose_name='Имя пользователя',
         help_text='Обязательное поле',
         unique=True,
@@ -28,7 +28,7 @@ class User(AbstractUser):
         null=False,
     )
     email = models.EmailField(
-        max_length=100,
+        max_length=254,
         verbose_name='Адрес Электронной почты',
         help_text='Обязательное поле',
         unique=True,
