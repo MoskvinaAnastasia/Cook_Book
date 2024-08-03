@@ -78,6 +78,7 @@ class Recipe(models.Model):
     )
 
     image = models.ImageField(
+        upload_to='recipes/',
         verbose_name='Картинка',
         help_text='Обязательное поле',
         blank=False,

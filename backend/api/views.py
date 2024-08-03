@@ -1,20 +1,21 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
-from djoser.serializers import SetPasswordSerializer
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly,)
 from rest_framework.decorators import action
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from djoser.serializers import SetPasswordSerializer
+
 from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
-                             CustomUserSerializer,
-                             IngredientSerializer, TagSerializer,
-                             TokenCreateSerializer, )
+                             CustomUserSerializer, IngredientSerializer,
+                             TagSerializer, TokenCreateSerializer)
 from api.pagination import LimitPagePagination
-from recipes.models import (Ingredient, Tag,)
+from recipes.models import (Ingredient, Tag)
 
 
 User = get_user_model()
@@ -74,7 +75,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(detail=False, methods=['put', 'delete'],
+    @action(detail=False, methods=['put', 'delete'], url_path='me/avatar',
             permission_classes=[IsAuthenticated])
     def avatar(self, request, *args, **kwargs):
         """

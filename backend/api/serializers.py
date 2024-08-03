@@ -1,10 +1,12 @@
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from djoser.serializers import UserSerializer, UserCreateSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
-from drf_extra_fields.fields import Base64ImageField
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from rest_framework import serializers
-from recipes.models import (Ingredient, Tag,)
+
+from djoser.serializers import UserSerializer, UserCreateSerializer
+from drf_extra_fields.fields import Base64ImageField
+
+from recipes.models import Ingredient, Tag
 
 User = get_user_model()
 
