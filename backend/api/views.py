@@ -1,18 +1,17 @@
-from djoser.views import UserViewSet
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from djoser.serializers import SetPasswordSerializer
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly,)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from api.serializers import (CustomUserCreateSerializer, CustomUserSerializer,
-                             IngredientSerializer, PasswordChangeSerializer,
-                             TagSerializer,
+from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
+                             CustomUserSerializer,
+                             IngredientSerializer, TagSerializer,
                              TokenCreateSerializer, )
 from api.pagination import LimitPagePagination
 from recipes.models import (Ingredient, Tag,)
@@ -66,14 +65,37 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         """
         Изменение пароля текущего пользователя.
         """
-        serializer = PasswordChangeSerializer(data=request.data,
-                                              context={'request': request})
+        serializer = SetPasswordSerializer(data=request.data,
+                                           context={'request': request})
         if serializer.is_valid():
             user = request.user
             user.set_password(serializer.validated_data['new_password'])
             user.save()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['put', 'delete'],
+            permission_classes=[IsAuthenticated])
+    def avatar(self, request, *args, **kwargs):
+        """
+        Добавления/обновления и удаления аватара текущего пользователя.
+        """
+        user = request.user
+
+        if request.method == 'PUT':
+            serializer = AvatarUserSerializer(user, data=request.data,
+                                              partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            if user.avatar:
+                user.avatar.delete()
+                user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TokenCreateView(APIView):

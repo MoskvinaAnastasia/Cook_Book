@@ -2,6 +2,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from recipes.models import (Ingredient, Tag,)
 
@@ -65,21 +66,14 @@ class TokenCreateSerializer(serializers.Serializer):
         return attrs
 
 
-class PasswordChangeSerializer(serializers.Serializer):
-    """Сериализатор для изменения пароля."""
+class AvatarUserSerializer(serializers.ModelSerializer):
+    """Сериализатор для добавления/удаления аватара."""
 
-    current_password = serializers.CharField(required=True, write_only=True)
-    new_password = serializers.CharField(required=True, write_only=True)
+    avatar = Base64ImageField(required=False, allow_null=True)
 
-    def validate(self, attrs):
-        current_password = attrs.get('current_password')
-        user = self.context['request'].user
-
-        if not user.check_password(current_password):
-            raise serializers.ValidationError(
-                {"current_password": "Неправильный текущий пароль."})
-
-        return attrs
+    class Meta:
+        model = User
+        fields = ('avatar',)
 
 
 class IngredientSerializer(serializers.ModelSerializer):
