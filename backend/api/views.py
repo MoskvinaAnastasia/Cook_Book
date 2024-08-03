@@ -11,11 +11,12 @@ from rest_framework.views import APIView
 
 from djoser.serializers import SetPasswordSerializer
 
+from api.pagination import LimitPagePagination
+from api.permissions import IsAuthorAdminAuthenticated
+from recipes.models import (Ingredient, Recipe, Tag)
 from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
                              CustomUserSerializer, IngredientSerializer,
                              TagSerializer, TokenCreateSerializer)
-from api.pagination import LimitPagePagination
-from recipes.models import (Ingredient, Tag)
 
 
 User = get_user_model()
@@ -36,7 +37,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     serializer_class = CustomUserSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'retrieve', 'list']:
+        if self.action in ('create', 'retrieve', 'list'):
             self.permission_classes = (AllowAny, )
         else:
             self.permission_classes = (IsAuthenticatedOrReadOnly, )
@@ -144,3 +145,14 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+
+
+class RecipeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Вьюсет для Создание и получение рецептов.
+    """
+
+    queryset = Recipe.objects.all()
+    permission_classes = (IsAuthorAdminAuthenticated, )
+    pagination_class = LimitPagePagination
+    

@@ -6,7 +6,8 @@ from rest_framework import serializers
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 
-from recipes.models import Ingredient, Tag
+from recipes.models import Ingredient, Recipe, Tag
+from users.models import Follower
 
 User = get_user_model()
 
@@ -24,10 +25,17 @@ class CustomUserSerializer(UserSerializer):
             'last_name', 'is_subscribed', 'avatar')
         
     def get_is_subscribed(self, obj):
-        pass
+        """Проверяет, подписан ли текущий пользователь на данного автора."""
+        user = self.context['request'].user
+        if user.is_authenticated:
+            return Follower.objects.filter(user=user, author=obj).exists()
+        return False
 
     def get_avatar(self, obj):
-        pass
+        """Возвращает URL аватара пользователя или None, если аватара нет."""
+        if obj.avatar:
+            return obj.avatar.url
+        return None
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -96,3 +104,4 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ('id', 'name', 'slug')
+

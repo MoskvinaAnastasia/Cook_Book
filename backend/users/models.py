@@ -47,3 +47,35 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+
+
+class Follower(models.Model):
+    """Класс для подписки на автора."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='follower',
+        verbose_name='Подписчик',
+        help_text='Пользователь, который подписывается',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='Автор',
+        help_text='Автор, на которого подписываются',
+    )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('user', 'author'),
+                name='user_author_unique'
+            ),
+        )
+
+    def __str__(self):
+        return f'{self.user.username} подписан на {self.author.username}'
