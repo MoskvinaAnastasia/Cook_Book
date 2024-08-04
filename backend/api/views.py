@@ -16,7 +16,9 @@ from api.permissions import IsAuthorAdminAuthenticated
 from recipes.models import (Ingredient, Recipe, Tag)
 from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
                              CustomUserSerializer, IngredientSerializer,
-                             TagSerializer, TokenCreateSerializer)
+                             RecipeCreateSerializer, RecipeGetSerializer,
+                             TagSerializer, TokenCreateSerializer
+                             )
 
 
 User = get_user_model()
@@ -146,7 +148,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
 
 
-class RecipeViewSet(viewsets.ReadOnlyModelViewSet):
+class RecipeViewSet(viewsets.ModelViewSet):
     """
     Вьюсет для Создание и получение рецептов.
     """
@@ -155,3 +157,10 @@ class RecipeViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (IsAuthorAdminAuthenticated, )
     pagination_class = LimitPagePagination
     
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return RecipeGetSerializer
+        return RecipeCreateSerializer
+        
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)

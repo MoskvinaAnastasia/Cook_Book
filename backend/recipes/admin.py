@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
+
 from .models import (Ingredient, FavoriteRecipe, Recipe,
                      RecipeIngredient, ShoppingCart, Tag)
 
@@ -26,7 +27,8 @@ class RecipeAdmin(admin.ModelAdmin):
         if obj.image:
             return mark_safe('<img src="{}" width="150" height="100" />'.format(obj.image.url))
         return None
-
+    
+    image_tag.short_description = 'Фото рецепта'
 
 @admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
