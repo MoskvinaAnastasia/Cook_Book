@@ -85,8 +85,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if request.method == 'PUT':
-            serializer = AvatarUserSerializer(user, data=request.data,
-                                              partial=True)
+            serializer = AvatarUserSerializer(user, data=request.data)
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)

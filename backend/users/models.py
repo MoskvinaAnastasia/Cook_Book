@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from users.constants import (MAX_LENGTH_USER_CHARFIELD,
+from .constants import (MAX_LENGTH_USER_CHARFIELD,
                              MAX_LENGTH_USER_EMAIL,)
 
 
@@ -43,6 +43,9 @@ class User(AbstractUser):
         help_text='Обязательное поле',
         blank=False,
         null=False,
+    )
+    avatar = models.ImageField(
+        upload_to='users/', null=True, default=None
     )
 
     def __str__(self):

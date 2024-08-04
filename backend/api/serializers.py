@@ -79,7 +79,7 @@ class TokenCreateSerializer(serializers.Serializer):
 class AvatarUserSerializer(serializers.ModelSerializer):
     """Сериализатор для добавления/удаления аватара."""
 
-    avatar = Base64ImageField(required=False, allow_null=True)
+    avatar = Base64ImageField(required=False)
 
     class Meta:
         model = User

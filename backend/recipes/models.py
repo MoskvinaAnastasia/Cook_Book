@@ -1,4 +1,6 @@
 from django.db import models
+from .constants import (MAX_LENGTH_NAME_CHARFIELD,
+                             MAX_LENGTH_TAG,)
 from users.models import User
 
 
@@ -6,7 +8,7 @@ class Ingredient(models.Model):
     """Класс ингредиенты."""
 
     name = models.CharField(
-        max_length=128,
+        max_length=MAX_LENGTH_NAME_CHARFIELD,
         verbose_name='Название',
         help_text='Обязательное поле',
         blank=False,
@@ -14,7 +16,7 @@ class Ingredient(models.Model):
     )
 
     measurement_unit = models.CharField(
-        max_length=128,
+        max_length=MAX_LENGTH_NAME_CHARFIELD,
         verbose_name='Единица измерения',
         help_text='Обязательное поле',
         blank=False,
@@ -33,7 +35,7 @@ class Tag(models.Model):
     """Класс Тег для группировки рецептов по тегам."""
 
     name = models.CharField(
-        max_length=32,
+        max_length=MAX_LENGTH_TAG,
         verbose_name='Название',
         help_text='Обязательное поле',
         unique=True,
@@ -42,7 +44,7 @@ class Tag(models.Model):
     )
 
     slug = models.SlugField(
-        max_length=32,
+        max_length=MAX_LENGTH_TAG,
         verbose_name='Слаг',
         help_text='Обязательное поле',
         unique=True,
@@ -70,7 +72,7 @@ class Recipe(models.Model):
     )
 
     name = models.CharField(
-        max_length=128,
+        max_length=MAX_LENGTH_NAME_CHARFIELD,
         verbose_name='Название',
         help_text='Обязательное поле',
         blank=False,
