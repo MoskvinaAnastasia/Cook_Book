@@ -57,7 +57,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 
     class Meta(UserCreateSerializer.Meta):
         model = User
-        fields = ('email', 'username', 'first_name', 'last_name', 'password')
+        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'password')
 
 
 class TokenCreateSerializer(serializers.Serializer):
@@ -192,6 +192,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         fields = ('id', 'tags', 'ingredients', 'image', 'name', 'text', 'cooking_time')
 
     def validate_cooking_time(self, value):
+        """Проверяет, что время приготовления больше 0."""
+
         if value == 0:
             raise serializers.ValidationError(
                 'Время приготовления должно быть больше 0'
@@ -199,6 +201,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
+        """Проверяет, что ингредиенты в рецепте уникальны."""
+
         ingredients = data.get('ingredients', [])
         ingredienеts_list = [ingredient['id'] for ingredient in ingredients]
         if len(ingredienеts_list) != len(set(ingredienеts_list)):
@@ -206,6 +210,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
+        """Создает новый рецепт."""
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
@@ -218,6 +223,42 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             RecipeIngredient.objects.create(recipe=recipe, ingredient=ingredient, amount=amount)
         return recipe
     
+    def create_ingredients(self, ingredients, recipe):
+        """ Создает и связывает ингредиенты с рецептом."""
+        ingredients_list = []
+        for ingredient in ingredients:
+            ingredient_instance = Ingredient.objects.get(id=ingredient['id'])
+            ingredients_list.append(
+                RecipeIngredient(
+                    recipe=recipe, amount=ingredient['amount'],
+                    ingredient=ingredient_instance
+                )
+            )
+        RecipeIngredient.objects.bulk_create(ingredients_list)
+
+    def update(self, instance, validated_data):
+        """Обновляет существующий рецепт."""
+        tags = validated_data.pop('tags', None)
+        ingredients = validated_data.pop('ingredients', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if tags is not None:
+            instance.tags.set(tags)
+        if ingredients is not None:
+            instance.ingredients.clear()
+            self.create_ingredients(ingredients, instance)
+        instance.save()
+        return instance
+
     def to_representation(self, instance):
         """Используем RecipeGetSerializer для формирования ответа."""
         return RecipeGetSerializer(instance, context=self.context).data
+    
+
+class ShoppingCartResponseSerializer(serializers.ModelSerializer):
+    """Сериализатор для ответа при добавлении рецепта в список покупок."""
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')

@@ -13,10 +13,11 @@ from djoser.serializers import SetPasswordSerializer
 
 from api.pagination import LimitPagePagination
 from api.permissions import IsAuthorAdminAuthenticated
-from recipes.models import (Ingredient, Recipe, Tag)
+from recipes.models import (Ingredient, Recipe, ShoppingCart, Tag)
 from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
                              CustomUserSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
+                             ShoppingCartResponseSerializer,
                              TagSerializer, TokenCreateSerializer
                              )
 
@@ -164,3 +165,34 @@ class RecipeViewSet(viewsets.ModelViewSet):
         
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    
+    @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
+    def shopping_cart(self, request, pk=None):
+        """
+        Добавить или удалить рецепт из списка покупок текущего пользователя.
+        Использует метод запроса для определения действия:
+        - POST: добавить рецепт в список покупок
+        - DELETE: удалить рецепт из списка покупок
+        """
+        recipe = self.get_object()
+        user = request.user
+
+        if request.method == 'POST':
+            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+                return Response(
+                    {'errors': 'Рецепт уже добавлен в список покупок.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            ShoppingCart.objects.create(user=user, recipe=recipe)
+            serializer = ShoppingCartResponseSerializer(recipe)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        elif request.method == 'DELETE':
+            if not ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+                return Response(
+                    {'errors': 'Рецепт не был добавлен в список покупок.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
