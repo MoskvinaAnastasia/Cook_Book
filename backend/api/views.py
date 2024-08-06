@@ -238,7 +238,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthorAdminAuthenticated, )
     pagination_class = LimitPagePagination
     filterset_class = RecipeFilter
-    
+    filter_backends = (DjangoFilterBackend,)
+    ordering = ('-pub_date',)
+
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return RecipeGetSerializer

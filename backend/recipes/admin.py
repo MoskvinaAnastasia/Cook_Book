@@ -19,9 +19,10 @@ class FavoriteRecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'author', 'image_tag')
+    list_display = ('id', 'name', 'author', 'image_tag', 'favorites_count')
     search_fields = ('name', 'author__username', 'author__email')
     list_filter = ('tags',)
+    ordering = ('-id',)
 
     def image_tag(self, obj):
         if obj.image:
@@ -29,6 +30,12 @@ class RecipeAdmin(admin.ModelAdmin):
         return None
     
     image_tag.short_description = 'Фото рецепта'
+
+    @admin.display(description='Количество рецептов в избранном')
+    def favorites_count(self, obj):
+        """Возвращает количество добавлений рецепта в избранное."""
+        return obj.users_recipes.count()
+
 
 @admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
