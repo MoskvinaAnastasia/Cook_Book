@@ -307,4 +307,5 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Получить короткую ссылку на рецепт."""
         recipe = self.get_object()
         short_link, created = ShortLink.objects.get_or_create(recipe=recipe)
-        return Response({'short-link': short_link.short_link}, status=status.HTTP_200_OK)
+        serializer = ShortLinkSerializer(short_link)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -203,9 +203,16 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        """Проверяет, что ингредиенты в рецепте уникальны и существуют."""
+        """
+        Проверяет, что ингредиенты и теги уникальны и существуют.
+        и что они не пустые.
+        """
 
         ingredients = data.get('ingredients', [])
+
+        if not ingredients:
+            raise serializers.ValidationError('Поле ingredients обязательно.')
+       
         ingredienеts_list = [ingredient['id'] for ingredient in ingredients]
         if len(ingredienеts_list) != len(set(ingredienеts_list)):
             raise serializers.ValidationError('Ингредиенты должны быть уникальными.')
@@ -220,8 +227,14 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         
         tags = data.get('tags', [])
+        if not tags:
+            raise serializers.ValidationError('Поле tags обязательно.')
         if len(tags) != len(set(tags)):
             raise serializers.ValidationError('Теги должны быть уникальными.')
+        
+        image = data.get('image')
+        if image is None:
+            raise serializers.ValidationError('Поле image обязательно.')
     
         return data
     
@@ -316,7 +329,21 @@ class SubscriptionSerializer(CustomUserSerializer):
 
 class ShortLinkSerializer(serializers.ModelSerializer):
     """Сериализатор для короткой ссылки."""
+    short_link = serializers.SerializerMethodField()
 
     class Meta:
         model = ShortLink
         fields = ('short_link',)
+
+    def get_short_link(self, obj):
+        """Создает полный URL для короткой ссылки."""
+        base_url = 'https://127.0.0.1:8000/s/'
+        return f"{base_url}{obj.short_link}"
+
+    def to_representation(self, instance):
+        """Преобразует ключи в формат с дефисом."""
+        representation = super().to_representation(instance)
+        return {
+            'short-link': representation['short_link']
+        }
+
