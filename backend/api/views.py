@@ -6,7 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
@@ -17,11 +17,13 @@ from djoser.serializers import SetPasswordSerializer
 from .filters import IngredientFilter, RecipeFilter
 from api.pagination import LimitPagePagination
 from api.permissions import IsAuthorAdminAuthenticated
-from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart, Tag)
+from recipes.models import (FavoriteRecipe, Ingredient, Recipe, 
+                            ShortLink, ShoppingCart, Tag)
 from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
                              CustomUserSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
-                             RecipeResponseSerializer, SubscriptionSerializer,
+                             RecipeResponseSerializer, ShortLinkSerializer,
+                             SubscriptionSerializer,
                              TagSerializer, TokenCreateSerializer,
                              )
 from users.models import Follower
@@ -133,6 +135,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         """Подписка на пользователей."""
         user = self.request.user
         author = get_object_or_404(User, pk=pk)
+
+        if user.id == author.id:
+            return Response(
+                {'detail': 'Нельзя подписаться на самого себя.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         instance = Follower.objects.filter(author=author, user=user)
         if request.method == 'POST':
             if instance.exists():
@@ -196,6 +205,22 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
     pagination_class = None
+
+
+@api_view(['GET'])
+def get_short_link(request, recipe_id):
+    """
+    Получение или создание короткой ссылки для рецепта.
+    """
+    try:
+        recipe = Recipe.objects.get(id=recipe_id)
+    except Recipe.DoesNotExist:
+        return Response({'detail': 'Рецепт не найден.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    short_link, created = ShortLink.objects.get_or_create(recipe=recipe)
+    
+    serializer = ShortLinkSerializer(short_link)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -276,3 +301,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 )
             FavoriteRecipe.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def get_link(self, request, pk=None):
+        """Получить короткую ссылку на рецепт."""
+        recipe = self.get_object()
+        short_link, created = ShortLink.objects.get_or_create(recipe=recipe)
+        return Response({'short-link': short_link.short_link}, status=status.HTTP_200_OK)

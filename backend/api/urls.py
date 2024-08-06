@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 
 from api.views import (IngredientViewSet, TagViewSet,
-                       CustomUserViewSet, RecipeViewSet)
+                       CustomUserViewSet, RecipeViewSet,
+                       get_short_link)
 
 router_v1 = DefaultRouter()
 
@@ -15,6 +16,7 @@ router_v1.register('recipes', RecipeViewSet, basename='recipes')
 
 urlpatterns = [
     path('', include(router_v1.urls)),
+    path('recipes/<int:recipe_id>/get-link/', get_short_link, name='get-link'),
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
 ]

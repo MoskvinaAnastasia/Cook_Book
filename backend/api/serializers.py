@@ -7,7 +7,7 @@ from djoser.serializers import UserSerializer, UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
 
 from recipes.models import (FavoriteRecipe, Ingredient, RecipeIngredient,
-                            Recipe, ShoppingCart, Tag)
+                            Recipe, ShoppingCart, ShortLink, Tag)
 from users.constants import MAX_LENGTH_USER_CHARFIELD
 from users.models import Follower, User
 
@@ -127,12 +127,12 @@ class RecipeGetSerializer(serializers.ModelSerializer):
     """Сериализатор для получения рецепта."""
 
     author = CustomUserSerializer(read_only=True)
-    tags = TagSerializer(many=True)
+    tags = TagSerializer(many=True, required=True)
     ingredients = RecipeIngredientSerializer(
-        many=True, source='ingredient_amounts')
+        many=True, source='ingredient_amounts', required=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
-    image = Base64ImageField()
+    image = Base64ImageField(required=True)
 
     class Meta:
         model = Recipe
@@ -167,10 +167,10 @@ class IngredientCreateSerializer(serializers.ModelSerializer):
         model = RecipeIngredient
         fields = ('id', 'amount')
 
-    def validate_amout(self, value):
-        if value == 0:
+    def validate_amount(self, value):
+        if value < 1:
             raise serializers.ValidationError(
-                'Количество должно быть больше 0'
+                'Количество должно быть больше или равно 1'
             )
         return value
 
@@ -185,7 +185,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         write_only=True, many=True, required=True
     )
     image = Base64ImageField(required=True)
-    name = serializers.CharField()
+    name = serializers.CharField(max_length=256)
     text = serializers.CharField()
     cooking_time = serializers.IntegerField()
 
@@ -203,12 +203,26 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        """Проверяет, что ингредиенты в рецепте уникальны."""
+        """Проверяет, что ингредиенты в рецепте уникальны и существуют."""
 
         ingredients = data.get('ingredients', [])
         ingredienеts_list = [ingredient['id'] for ingredient in ingredients]
         if len(ingredienеts_list) != len(set(ingredienеts_list)):
             raise serializers.ValidationError('Ингредиенты должны быть уникальными.')
+            
+        non_existing_ingredients = [
+        ingredient_id for ingredient_id in ingredienеts_list
+        if not Ingredient.objects.filter(id=ingredient_id).exists()
+        ]
+        if non_existing_ingredients:
+            raise serializers.ValidationError(
+                f"Ингредиент с id {non_existing_ingredients} не существует."
+            )
+        
+        tags = data.get('tags', [])
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError('Теги должны быть уникальными.')
+    
         return data
     
     def create(self, validated_data):
@@ -242,6 +256,10 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         """Обновляет существующий рецепт."""
         tags = validated_data.pop('tags', None)
         ingredients = validated_data.pop('ingredients', None)
+
+        if ingredients is None:
+            raise serializers.ValidationError(
+                'Поле "ingredients" обязательно для обновления рецепта.')
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -294,3 +312,11 @@ class SubscriptionSerializer(CustomUserSerializer):
         if user.is_anonymous:
             return False
         return Follower.objects.filter(user=user, author=obj).exists()
+    
+
+class ShortLinkSerializer(serializers.ModelSerializer):
+    """Сериализатор для короткой ссылки."""
+
+    class Meta:
+        model = ShortLink
+        fields = ('short_link',)

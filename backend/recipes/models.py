@@ -1,3 +1,6 @@
+import string
+import random
+
 from django.db import models
 from .constants import (MAX_LENGTH_NAME_CHARFIELD,
                              MAX_LENGTH_TAG,)
@@ -205,3 +208,25 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f'{self.recipe.name} - {self.ingredient.name} ({self.amount})'
+
+
+class ShortLink(models.Model):
+    """Модель для хранения коротких ссылок на рецепты."""
+
+    recipe = models.OneToOneField(Recipe, on_delete=models.CASCADE, related_name='short_link')
+    short_link = models.CharField(max_length=10, unique=True, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.short_link:
+            self.short_link = self.generate_short_link()
+        super().save(*args, **kwargs)
+
+    def generate_short_link(self):
+        """Генерирует уникальную короткую ссылку."""
+        length = 10
+        characters = string.ascii_letters + string.digits
+        while True:
+            short_link = ''.join(random.choices(characters, k=length))
+            if not ShortLink.objects.filter(short_link=short_link).exists():
+                break
+        return short_link
