@@ -1,6 +1,6 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 
 from rest_framework import status
@@ -221,6 +221,12 @@ def get_short_link(request, recipe_id):
     
     serializer = ShortLinkSerializer(short_link)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def redirect_short_link(request, short_link):
+    """Перенаправляет на соответствующий рецепт по короткой ссылке."""
+    short_link_obj = get_object_or_404(ShortLink, short_link=short_link)
+    return redirect('recipes-detail', pk=short_link_obj.recipe.id)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
