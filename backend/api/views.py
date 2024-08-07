@@ -15,8 +15,8 @@ from rest_framework.views import APIView
 from djoser.serializers import SetPasswordSerializer
 
 from .filters import IngredientFilter, RecipeFilter
-from api.pagination import LimitPagePagination
-from api.permissions import IsAuthorAdminAuthenticated
+from .pagination import LimitPagePagination
+from .permissions import IsAuthorAdminAuthenticated
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe, 
                             ShortLink, ShoppingCart, Tag)
 from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
@@ -317,3 +317,4 @@ class RecipeViewSet(viewsets.ModelViewSet):
         short_link, created = ShortLink.objects.get_or_create(recipe=recipe)
         serializer = ShortLinkSerializer(short_link)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
