@@ -7,7 +7,8 @@ from api.views import redirect_short_link
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('s/<str:short_link>/', redirect_short_link, name='redirect_short_link'),
+    path('s/<str:short_link>/', redirect_short_link,
+         name='redirect_short_link'),
 ]
 
 if settings.DEBUG:

@@ -26,9 +26,10 @@ class RecipeAdmin(admin.ModelAdmin):
 
     def image_tag(self, obj):
         if obj.image:
-            return mark_safe('<img src="{}" width="150" height="100" />'.format(obj.image.url))
+            return mark_safe('<img src="{}" width="150"'
+                             'height="100" />'.format(obj.image.url))
         return None
-    
+
     image_tag.short_description = 'Фото рецепта'
 
     @admin.display(description='Количество рецептов в избранном')

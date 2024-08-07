@@ -3,7 +3,7 @@ import random
 
 from django.db import models
 from .constants import (MAX_LENGTH_NAME_CHARFIELD,
-                             MAX_LENGTH_TAG,)
+                        MAX_LENGTH_TAG,)
 from users.models import User
 
 
@@ -213,8 +213,10 @@ class RecipeIngredient(models.Model):
 class ShortLink(models.Model):
     """Модель для хранения коротких ссылок на рецепты."""
 
-    recipe = models.OneToOneField(Recipe, on_delete=models.CASCADE, related_name='short_link')
-    short_link = models.CharField(max_length=3, unique=True, blank=True, null=True)
+    recipe = models.OneToOneField(Recipe, on_delete=models.CASCADE,
+                                  related_name='short_link')
+    short_link = models.CharField(max_length=3, unique=True,
+                                  blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if not self.short_link:
