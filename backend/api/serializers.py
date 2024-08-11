@@ -69,6 +69,7 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
                   'first_name', 'last_name', 'password')
 
 
+'''
 class TokenCreateSerializer(serializers.Serializer):
     """Сериализатор для получения токена."""
 
@@ -84,6 +85,7 @@ class TokenCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError('Неверные учетные данные.')
 
         return attrs
+'''
 
 
 class AvatarUserSerializer(serializers.ModelSerializer):

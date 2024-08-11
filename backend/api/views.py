@@ -1,15 +1,13 @@
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import get_user_model
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
-from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAdminUser, IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from djoser.serializers import SetPasswordSerializer
 
@@ -20,8 +18,7 @@ from api.serializers import (AvatarUserSerializer, UserCreateSerializer,
                              UserSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
                              RecipeResponseSerializer, ShortLinkSerializer,
-                             SubscriptionSerializer, TagSerializer,
-                             TokenCreateSerializer)
+                             SubscriptionSerializer, TagSerializer,)
 from api.shopping_cart import get_shopping_list
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
                             ShortLink, ShoppingCart, Tag)
@@ -87,37 +84,40 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['put', 'delete'], url_path='me/avatar',
+    @action(detail=False, methods=['put'], url_path='me/avatar',
             permission_classes=[IsAuthenticated])
     def avatar(self, request, *args, **kwargs):
         """
-        Добавления/обновления и удаления аватара текущего пользователя.
+        Добавление или обновление аватара текущего пользователя.
         """
         user = request.user
+        serializer = AvatarUserSerializer(user, data=request.data)
 
-        if request.method == 'PUT':
-            serializer = AvatarUserSerializer(user, data=request.data)
-            if not request.data.get('avatar'):
-                return Response(
-                    {'detail': 'Поле avatar обязательно.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data,
-                                status=status.HTTP_200_OK)
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        elif request.method == 'DELETE':
-            if user.avatar:
-                user.avatar.delete()
-                user.save()
-                return Response(status=status.HTTP_204_NO_CONTENT)
+        if not request.data.get('avatar'):
             return Response(
-                {'detail': 'Аватар отсутствует.'},
+                {'detail': 'Поле avatar обязательно.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @avatar.mapping.delete
+    def delete_avatar(self, request, *args, **kwargs):
+        """
+        Удаление аватара текущего пользователя.
+        """
+        user = request.user
+        if user.avatar:
+            user.avatar.delete()
+            user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'detail': 'Аватар отсутствует.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(detail=False)
     def subscriptions(self, request):
@@ -162,6 +162,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
 
+'''
 class TokenCreateView(APIView):
     """
     Вьюсет для получения токена авторизации.
@@ -185,6 +186,7 @@ class TokenCreateView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+'''
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -256,7 +258,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок текущего пользователя."""
         recipe = self.get_object()
@@ -283,7 +286,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное текущего пользователя."""
         recipe = self.get_object()
@@ -302,7 +306,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         """Удалить рецепт из избранного текущего пользователя."""
         recipe = self.get_object()
         user = request.user
-        if not FavoriteRecipe.objects.filter(user=user, recipe=recipe).exists():
+        if not FavoriteRecipe.objects.filter(user=user,
+                                             recipe=recipe).exists():
             return Response(
                 {'errors': 'Рецепт не был добавлен в избранное.'},
                 status=status.HTTP_400_BAD_REQUEST
