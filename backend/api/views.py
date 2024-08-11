@@ -8,7 +8,7 @@ from rest_framework import status, viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+                                        IsAdminUser, IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -16,9 +16,9 @@ from djoser.serializers import SetPasswordSerializer
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.pagination import LimitPagePagination
-from api.permissions import IsAuthorAdminAuthenticated
-from api.serializers import (AvatarUserSerializer, CustomUserCreateSerializer,
-                             CustomUserSerializer, IngredientSerializer,
+from api.permissions import IsAuthorOrReadOnly
+from api.serializers import (AvatarUserSerializer, UserCreateSerializer,
+                             UserSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
                              RecipeResponseSerializer, ShortLinkSerializer,
                              SubscriptionSerializer, TagSerializer,
@@ -43,22 +43,22 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all()
     pagination_class = LimitPagePagination
-    serializer_class = CustomUserSerializer
+    serializer_class = UserSerializer
 
     def get_permissions(self):
         if self.action in ('create', 'retrieve', 'list'):
             self.permission_classes = (AllowAny, )
+        elif self.action in ('update', 'partial_update', 'destroy'):
+            self.permission_classes = (IsAuthorOrReadOnly, IsAdminUser)
         else:
             self.permission_classes = (IsAuthenticatedOrReadOnly, )
         return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'create':
-            return CustomUserCreateSerializer
-        elif self.action == 'retrieve':
-            return CustomUserSerializer
-        elif self.action == 'list':
-            return CustomUserSerializer
+            return UserCreateSerializer
+        elif self.action in ['retrieve', 'list']:
+            return UserSerializer
         return super().get_serializer_class()
 
     @action(methods=['get'], detail=False,
@@ -243,7 +243,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthorAdminAuthenticated, )
+    permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = LimitPagePagination
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)

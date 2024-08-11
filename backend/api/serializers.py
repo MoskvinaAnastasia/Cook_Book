@@ -3,7 +3,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from rest_framework import serializers
 
-from djoser.serializers import UserSerializer, UserCreateSerializer
+from djoser.serializers import UserSerializer as DjoserUserSerializer
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer)
 from drf_extra_fields.fields import Base64ImageField
 
 from recipes.models import (FavoriteRecipe, Ingredient, RecipeIngredient,
@@ -15,13 +17,13 @@ from users.models import Follower
 User = get_user_model()
 
 
-class CustomUserSerializer(UserSerializer):
+class UserSerializer(DjoserUserSerializer):
     """Сериализатор для получения информации о пользователе."""
 
     is_subscribed = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
 
-    class Meta(UserSerializer.Meta):
+    class Meta(DjoserUserSerializer.Meta):
         model = User
         fields = (
             'email', 'id', 'username', 'first_name',
@@ -41,7 +43,7 @@ class CustomUserSerializer(UserSerializer):
         return None
 
 
-class CustomUserCreateSerializer(UserCreateSerializer):
+class UserCreateSerializer(DjoserUserCreateSerializer):
     """Сериализатор для регистрация пользователей."""
 
     email = serializers.EmailField(required=True)
@@ -50,14 +52,17 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         validators=[UnicodeUsernameValidator()],
         max_length=MAX_LENGTH_USER_CHARFIELD
     )
-    first_name = serializers.CharField(required=True,
-                                       max_length=150)
-    last_name = serializers.CharField(required=True,
-                                      max_length=150)
-    password = serializers.CharField(write_only=True,
-                                     required=True)
+    first_name = serializers.CharField(
+        required=True,
+        max_length=150)
+    last_name = serializers.CharField(
+        required=True,
+        max_length=150)
+    password = serializers.CharField(
+        write_only=True,
+        required=True)
 
-    class Meta(UserCreateSerializer.Meta):
+    class Meta(DjoserUserCreateSerializer.Meta):
         model = User
         fields = ('id', 'email', 'username',
                   'first_name', 'last_name', 'password')
@@ -127,10 +132,14 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeGetSerializer(serializers.ModelSerializer):
     """Сериализатор для получения рецепта."""
 
-    author = CustomUserSerializer(read_only=True)
-    tags = TagSerializer(many=True, required=True)
+    author = UserSerializer(read_only=True)
+    tags = TagSerializer(
+        many=True,
+        required=True)
     ingredients = RecipeIngredientSerializer(
-        many=True, source='ingredient_amounts', required=True)
+        many=True,
+        source='ingredient_amounts',
+        required=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
     image = Base64ImageField(required=True)
@@ -187,10 +196,14 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     """Серилизатор для Создания и обновления рецептов."""
 
     tags = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Tag.objects.all(), required=True
+        many=True,
+        queryset=Tag.objects.all(),
+        required=True
     )
     ingredients = IngredientCreateSerializer(
-        write_only=True, many=True, required=True
+        write_only=True,
+        many=True,
+        required=True
     )
     image = Base64ImageField(required=True)
     name = serializers.CharField(max_length=256)
@@ -312,7 +325,7 @@ class RecipeResponseSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscriptionSerializer(CustomUserSerializer):
+class SubscriptionSerializer(UserSerializer):
     """Получение подписок пользователя."""
 
     recipes = serializers.SerializerMethodField(read_only=True)

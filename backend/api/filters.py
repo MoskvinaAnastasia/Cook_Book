@@ -36,11 +36,11 @@ class RecipeFilter(FilterSet):
         Находятся ли они в избранном у текущего пользователя.
         """
         request = self.request
-        if not request.user.is_authenticated:
+        if request.user.is_anonymous:
             return queryset.none()
         if value:
             return queryset.filter(users_recipes__user=request.user)
-        return queryset.exclude(users_recipes__user=request.user)
+        return queryset
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         """
@@ -48,8 +48,8 @@ class RecipeFilter(FilterSet):
         Находятся ли они в списке покупок у текущего пользователя.
         """
         request = self.request
-        if not request.user.is_authenticated:
+        if request.user.is_anonymous:
             return queryset.none()
         if value:
             return queryset.filter(in_shopping_carts__user=request.user)
-        return queryset.exclude(in_shopping_carts__user=request.user)
+        return queryset
