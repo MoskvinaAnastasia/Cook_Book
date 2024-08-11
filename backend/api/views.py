@@ -1,7 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.http import HttpResponse
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.db.models import Sum
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -23,8 +22,8 @@ from api.serializers import (AvatarUserSerializer, UserCreateSerializer,
                              RecipeResponseSerializer, ShortLinkSerializer,
                              SubscriptionSerializer, TagSerializer,
                              TokenCreateSerializer)
+from api.shopping_cart import get_shopping_list
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
-                            RecipeIngredient,
                             ShortLink, ShoppingCart, Tag)
 from users.models import Follower
 
@@ -257,70 +256,59 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['post', 'delete'],
-            permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
-        """
-        Добавить или удалить рецепт из списка покупок текущего пользователя.
-        Использует метод запроса для определения действия:
-        - POST: добавить рецепт в список покупок
-        - DELETE: удалить рецепт из списка покупок
-        """
+        """Добавить рецепт в список покупок текущего пользователя."""
         recipe = self.get_object()
         user = request.user
+        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            return Response(
+                {'errors': 'Рецепт уже добавлен в список покупок.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        ShoppingCart.objects.create(user=user, recipe=recipe)
+        serializer = RecipeResponseSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'POST':
-            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-                return Response(
-                    {'errors': 'Рецепт уже добавлен в список покупок.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            ShoppingCart.objects.create(user=user, recipe=recipe)
-            serializer = RecipeResponseSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, pk=None):
+        """Удалить рецепт из списка покупок текущего пользователя."""
+        recipe = self.get_object()
+        user = request.user
+        if not ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            return Response(
+                {'errors': 'Рецепт не был добавлен в список покупок.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-        elif request.method == 'DELETE':
-            if not ShoppingCart.objects.filter(user=user,
-                                               recipe=recipe).exists():
-                return Response(
-                    {'errors': 'Рецепт не был добавлен в список покупок.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['post', 'delete'],
-            permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
-        """
-        Добавить или удалить рецепт из избранного текущего пользователя.
-        Использует метод запроса для определения действия:
-        - POST: добавить рецепт в избранное
-        - DELETE: удалить рецепт из избранного
-        """
+        """Добавить рецепт в избранное текущего пользователя."""
         recipe = self.get_object()
         user = request.user
+        if FavoriteRecipe.objects.filter(user=user, recipe=recipe).exists():
+            return Response(
+                {'errors': 'Рецепт уже добавлен в избранное.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        FavoriteRecipe.objects.create(user=user, recipe=recipe)
+        serializer = RecipeResponseSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'POST':
-            if FavoriteRecipe.objects.filter(user=user,
-                                             recipe=recipe).exists():
-                return Response(
-                    {'errors': 'Рецепт уже добавлен в избранное.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            FavoriteRecipe.objects.create(user=user, recipe=recipe)
-            serializer = RecipeResponseSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        elif request.method == 'DELETE':
-            if not FavoriteRecipe.objects.filter(user=user,
-                                                 recipe=recipe).exists():
-                return Response(
-                    {'errors': 'Рецепт не был добавлен в избранное.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            FavoriteRecipe.objects.filter(user=user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    @favorite.mapping.delete
+    def delete_favorite(self, request, pk=None):
+        """Удалить рецепт из избранного текущего пользователя."""
+        recipe = self.get_object()
+        user = request.user
+        if not FavoriteRecipe.objects.filter(user=user, recipe=recipe).exists():
+            return Response(
+                {'errors': 'Рецепт не был добавлен в избранное.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        FavoriteRecipe.objects.filter(user=user, recipe=recipe).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
     def get_link(self, request, pk=None):
@@ -334,38 +322,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         """
-        Скачивание списка покупок для авторизованного.
+        Скачивание списка покупок для авторизованного
         пользователя в формате TXT.
         """
-        if not request.user.is_authenticated:
-            return Response({'detail': 'Пользователь не авторизован.'},
-                            status=status.HTTP_401_UNAUTHORIZED)
+        user = request.user
 
-        shopping_cart_recipes = Recipe.objects.filter(
-            in_shopping_carts__user=request.user)
-
-        if not shopping_cart_recipes.exists():
-            return Response({'detail': 'Список покупок пуст.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        ingredients = RecipeIngredient.objects.filter(
-            recipe__in=shopping_cart_recipes
-        ).values(
-            'ingredient__name',
-            'ingredient__measurement_unit'
-        ).annotate(
-            total_quantity=Sum('amount')
-        )
-
-        lines = []
-        for item in ingredients:
-            lines.append(
-                f"{item['ingredient__name']} - {item['total_quantity']} "
-                f"{item['ingredient__measurement_unit']}\n"
+        try:
+            file_buffer = get_shopping_list(user)
+        except ValueError:
+            return Response(
+                {'detail': 'Ваш список покупок пуст.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        file_content = "Необходимо купить:\n" + ''.join(lines)
-        response = HttpResponse(file_content, content_type='text/plain')
-        response['Content-Disposition'] = ('attachment;'
-                                           'filename="shopping_cart.txt"')
-        return response
+        return FileResponse(file_buffer,
+                            as_attachment=True,
+                            filename='shopping_cart.txt')

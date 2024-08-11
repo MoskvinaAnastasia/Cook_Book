@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import transaction
 from rest_framework import serializers
 
 from djoser.serializers import UserSerializer as DjoserUserSerializer
@@ -224,6 +225,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_image(self, value):
+        """Проверяет, что изображение предоставлено."""
+        if value is None:
+            raise serializers.ValidationError('Поле image обязательно.')
+        return value
+
     def validate(self, data):
         """
         Проверяет, что ингредиенты и теги уникальны и существуют.
@@ -255,41 +262,62 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         if len(tags) != len(set(tags)):
             raise serializers.ValidationError('Теги должны быть уникальными.')
 
-        image = data.get('image')
-        if image is None:
-            raise serializers.ValidationError('Поле image обязательно.')
-
         return data
 
+    @transaction.atomic
     def create(self, validated_data):
         """Создает новый рецепт."""
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
-        recipe = Recipe.objects.create(**validated_data)
-        recipe.tags.set(tags)
 
-        for ingredient_data in ingredients_data:
-            ingredient_id = ingredient_data.get('id')
-            amount = ingredient_data.get('amount')
-            ingredient = Ingredient.objects.get(id=ingredient_id)
-            RecipeIngredient.objects.create(recipe=recipe,
-                                            ingredient=ingredient,
-                                            amount=amount)
+        try:
+            recipe = Recipe.objects.create(**validated_data)
+            recipe.tags.set(tags)
+            ingredient_ids = [ingredient_data.get('id')
+                              for ingredient_data in ingredients_data]
+            ingredients = Ingredient.objects.filter(id__in=ingredient_ids)
+            ingredient_dict = {
+                ingredient.id: ingredient for ingredient in ingredients}
+
+            recipe_ingredients = []
+            for ingredient_data in ingredients_data:
+                ingredient_id = ingredient_data.get('id')
+                amount = ingredient_data.get('amount')
+                ingredient = ingredient_dict.get(ingredient_id)
+                if ingredient:
+                    recipe_ingredients.append(
+                        RecipeIngredient(
+                            recipe=recipe,
+                            ingredient=ingredient,
+                            amount=amount
+                        )
+                    )
+            RecipeIngredient.objects.bulk_create(recipe_ingredients)
+
+        except Exception as e:
+            print(f"Ошибка при создании рецепта: {e}")
+            raise
+
         return recipe
 
     def create_ingredients(self, ingredients, recipe):
-        """ Создает и связывает ингредиенты с рецептом."""
-        ingredients_list = []
-        for ingredient in ingredients:
-            ingredient_instance = Ingredient.objects.get(id=ingredient['id'])
-            ingredients_list.append(
-                RecipeIngredient(
-                    recipe=recipe, amount=ingredient['amount'],
-                    ingredient=ingredient_instance
-                )
+        """Создает и связывает ингредиенты с рецептом."""
+
+        ingredient_ids = [ingredient['id'] for ingredient in ingredients]
+        ingredient_instances = Ingredient.objects.filter(id__in=ingredient_ids)
+        ingredient_dict = {
+            ingredient.id: ingredient for ingredient in ingredient_instances}
+        ingredients_list = [
+            RecipeIngredient(
+                recipe=recipe,
+                amount=ingredient['amount'],
+                ingredient=ingredient_dict[ingredient['id']]
             )
+            for ingredient in ingredients
+        ]
         RecipeIngredient.objects.bulk_create(ingredients_list)
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         """Обновляет существующий рецепт."""
         tags = validated_data.pop('tags', None)
@@ -298,15 +326,15 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         if ingredients is None:
             raise serializers.ValidationError(
                 'Поле "ingredients" обязательно для обновления рецепта.')
+        instance = super().update(instance, validated_data)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
         if tags is not None:
             instance.tags.set(tags)
         if ingredients is not None:
             instance.ingredients.clear()
             self.create_ingredients(ingredients, instance)
         instance.save()
+
         return instance
 
     def to_representation(self, instance):
