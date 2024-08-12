@@ -1,37 +1,40 @@
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+
+from api.serializers import RecipeResponseSerializer
 
 
-class RecipeActionMixin:
-    """
-    Миксин для обработки добавления и удаления рецептов.
-    в/из списка покупок и избранного.
-    """
+class RecipeListMixin:
+    model_class = None
+    action_name = None
 
-    def get_recipe(self, request, pk=None):
-        """Получить рецепт по первичному ключу."""
-        return self.get_object()
-
-    def get_user(self, request):
-        """Получить текущего пользователя."""
-        return request.user
-
-    def add_to_list(self, model, user, recipe):
-        """Добавить рецепт в список (покупок или избранное)."""
-        if model.objects.filter(user=user, recipe=recipe).exists():
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
+    def add_to_list(self, request, pk=None):
+        """Добавить рецепт в список (корзина или избранное)."""
+        recipe = self.get_object()
+        user = request.user
+        if self.model_class.objects.filter(user=user, recipe=recipe).exists():
             return Response(
-                {'errors': 'Рецепт уже добавлен.'},
+                {'errors': f'Рецепт уже добавлен в {self.action_name}.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        model.objects.create(user=user, recipe=recipe)
-        return None
+        self.model_class.objects.create(user=user, recipe=recipe)
+        serializer = RecipeResponseSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def remove_from_list(self, model, user, recipe):
-        """Удалить рецепт из списка (покупок или избранное)."""
-        if not model.objects.filter(user=user, recipe=recipe).exists():
+    @add_to_list.mapping.delete
+    def remove_from_list(self, request, pk=None):
+        """Удалить рецепт из списка (корзина или избранное)."""
+        recipe = self.get_object()
+        user = request.user
+        if not self.model_class.objects.filter(user=user,
+                                               recipe=recipe).exists():
             return Response(
-                {'errors': 'Рецепт не был добавлен.'},
+                {'errors': f'Рецепт не был добавлен в {self.action_name}.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        model.objects.filter(user=user, recipe=recipe).delete()
-        return None
+        self.model_class.objects.filter(user=user, recipe=recipe).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

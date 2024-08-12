@@ -1,4 +1,3 @@
-from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import transaction
@@ -67,25 +66,6 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
         model = User
         fields = ('id', 'email', 'username',
                   'first_name', 'last_name', 'password')
-
-
-'''
-class TokenCreateSerializer(serializers.Serializer):
-    """Сериализатор для получения токена."""
-
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True)
-
-    def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-
-        user = authenticate(email=email, password=password)
-        if not user:
-            raise serializers.ValidationError('Неверные учетные данные.')
-
-        return attrs
-'''
 
 
 class AvatarUserSerializer(serializers.ModelSerializer):

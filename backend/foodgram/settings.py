@@ -150,8 +150,14 @@ DJOSER = {
     'SERIALIZERS': {
         'user_create': 'api.serializers.UserCreateSerializer',
         'user': 'api.serializers.UserSerializer',
-        'current_user': 'api.serializers.UserCreateSerializer',
+        'current_user': 'api.serializers.UserSerializer',
     },
+
+    'PERMISSIONS': {
+        'user_list': ['rest_framework.permissions.AllowAny'],
+        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+        
+    }
 }
 
 AUTH_USER_MODEL = 'users.User'

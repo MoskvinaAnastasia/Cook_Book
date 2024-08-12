@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from djoser.serializers import SetPasswordSerializer
 
 from api.filters import IngredientFilter, RecipeFilter
+from .mixins import RecipeListMixin
 from api.pagination import LimitPagePagination
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (AvatarUserSerializer, UserCreateSerializer,
@@ -162,33 +163,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST)
 
 
-'''
-class TokenCreateView(APIView):
-    """
-    Вьюсет для получения токена авторизации.
-    """
-    permission_classes = (AllowAny, )
-    serializer_class = TokenCreateSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            password = serializer.validated_data['password']
-            user = authenticate(email=email, password=password)
-
-            if user:
-                token, created = Token.objects.get_or_create(user=user)
-                return Response({'auth_token': token.key},
-                                status=status.HTTP_201_CREATED)
-            return Response({'detail': 'Неверные учетные данные.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-'''
-
-
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Вьюсет для получение списков тегов и информации о теге по id.
@@ -238,7 +212,7 @@ def redirect_short_link(request, short_link):
     return redirect('recipes-detail', pk=short_link_obj.recipe.id)
 
 
-class RecipeViewSet(viewsets.ModelViewSet):
+class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
     """
     Вьюсет для Создание и получение рецептов.
     """
@@ -258,62 +232,33 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['post'],
-            permission_classes=[IsAuthenticated])
-    def shopping_cart(self, request, pk=None):
-        """Добавить рецепт в список покупок текущего пользователя."""
-        recipe = self.get_object()
-        user = request.user
-        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-            return Response(
-                {'errors': 'Рецепт уже добавлен в список покупок.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        ShoppingCart.objects.create(user=user, recipe=recipe)
-        serializer = RecipeResponseSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @shopping_cart.mapping.delete
-    def delete_shopping_cart(self, request, pk=None):
-        """Удалить рецепт из списка покупок текущего пользователя."""
-        recipe = self.get_object()
-        user = request.user
-        if not ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-            return Response(
-                {'errors': 'Рецепт не был добавлен в список покупок.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(detail=True, methods=['post'],
-            permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное текущего пользователя."""
-        recipe = self.get_object()
-        user = request.user
-        if FavoriteRecipe.objects.filter(user=user, recipe=recipe).exists():
-            return Response(
-                {'errors': 'Рецепт уже добавлен в избранное.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        FavoriteRecipe.objects.create(user=user, recipe=recipe)
-        serializer = RecipeResponseSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        self.model_class = FavoriteRecipe
+        self.action_name = 'избранное'
+        return self.add_to_list(request, pk)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
         """Удалить рецепт из избранного текущего пользователя."""
-        recipe = self.get_object()
-        user = request.user
-        if not FavoriteRecipe.objects.filter(user=user,
-                                             recipe=recipe).exists():
-            return Response(
-                {'errors': 'Рецепт не был добавлен в избранное.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        FavoriteRecipe.objects.filter(user=user, recipe=recipe).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        self.model_class = FavoriteRecipe
+        self.action_name = 'избранное'
+        return self.remove_from_list(request, pk)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def shopping_cart(self, request, pk=None):
+        """Добавить рецепт в список покупок текущего пользователя."""
+        self.model_class = ShoppingCart
+        self.action_name = 'список покупок'
+        return self.add_to_list(request, pk)
+
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, pk=None):
+        """Удалить рецепт из списка покупок текущего пользователя."""
+        self.model_class = ShoppingCart
+        self.action_name = 'список покупок'
+        return self.remove_from_list(request, pk)
 
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
     def get_link(self, request, pk=None):
