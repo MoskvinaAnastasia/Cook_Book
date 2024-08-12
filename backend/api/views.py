@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Exists, OuterRef, Value, BooleanField
+from django.db.models.functions import Coalesce
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
 
@@ -18,7 +20,7 @@ from api.permissions import IsAuthorOrReadOnly
 from api.serializers import (AvatarUserSerializer, UserCreateSerializer,
                              UserSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
-                             RecipeResponseSerializer, ShortLinkSerializer,
+                             ShortLinkSerializer,
                              SubscriptionSerializer, TagSerializer,)
 from api.shopping_cart import get_shopping_list
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
@@ -217,17 +219,37 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
     Вьюсет для Создание и получение рецептов.
     """
 
-    queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = LimitPagePagination
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)
     ordering = ('-pub_date',)
 
+    def get_queryset(self):
+        queryset = Recipe.objects.all()
+        user = (self.request.user if self.request.user.is_authenticated
+                else None)
+        favorite_subquery = FavoriteRecipe.objects.filter(
+            user=user if user else Value(None),
+            recipe=OuterRef('pk')
+        )
+        shopping_cart_subquery = ShoppingCart.objects.filter(
+            user=user if user else Value(None),
+            recipe=OuterRef('pk')
+        )
+        queryset = queryset.annotate(
+            is_favorited=Coalesce(Exists(favorite_subquery), False),
+            is_in_shopping_cart=Coalesce(Exists(shopping_cart_subquery), False)
+        )
+        return queryset
+
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return RecipeGetSerializer
         return RecipeCreateSerializer
+
+    def get_serializer_context(self):
+        return {'request': self.request}
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

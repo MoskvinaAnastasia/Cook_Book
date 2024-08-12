@@ -116,15 +116,12 @@ class RecipeGetSerializer(serializers.ModelSerializer):
     """Сериализатор для получения рецепта."""
 
     author = UserSerializer(read_only=True)
-    tags = TagSerializer(
-        many=True,
-        required=True)
-    ingredients = RecipeIngredientSerializer(
-        many=True,
-        source='ingredient_amounts',
-        required=True)
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    tags = TagSerializer(many=True, required=True)
+    ingredients = RecipeIngredientSerializer(many=True,
+                                             source='ingredient_amounts',
+                                             required=True)
+    is_favorited = serializers.BooleanField(default=False)
+    is_in_shopping_cart = serializers.BooleanField(default=False)
     image = Base64ImageField(required=True)
 
     class Meta:
@@ -134,27 +131,6 @@ class RecipeGetSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart', 'name', 'image', 'text', 'cooking_time'
         )
         read_only_fields = ('author', 'tags', 'ingredients')
-
-    def get_is_favorited(self, obj):
-        """
-        Проверяет, находится ли рецепт в избранном.
-        у текущего пользователя.
-        """
-        request = self.context.get('request')
-        if request and not request.user.is_anonymous:
-            return FavoriteRecipe.objects.filter(user=request.user,
-                                                 recipe=obj).exists()
-        return False
-
-    def get_is_in_shopping_cart(self, obj):
-        """
-        Проверяет, находится ли рецепт в корзине.
-        покупок у текущего пользователя."""
-        request = self.context.get('request')
-        if request and not request.user.is_anonymous:
-            return ShoppingCart.objects.filter(user=request.user,
-                                               recipe=obj).exists()
-        return False
 
 
 class IngredientCreateSerializer(serializers.ModelSerializer):
