@@ -155,9 +155,11 @@ DJOSER = {
 
     'PERMISSIONS': {
         'user_list': ['rest_framework.permissions.AllowAny'],
-        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
-        
-    }
+        'user': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+        'user_create': ['rest_framework.permissions.AllowAny'],
+        'user_delete': ['rest_framework.permissions.IsAdminUser'],
+        'user_update': ['rest_framework.permissions.IsAuthenticatedOrReadOnly'],
+    },
 }
 
 AUTH_USER_MODEL = 'users.User'

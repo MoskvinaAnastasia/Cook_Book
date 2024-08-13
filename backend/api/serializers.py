@@ -8,8 +8,8 @@ from djoser.serializers import (
     UserCreateSerializer as DjoserUserCreateSerializer)
 from drf_extra_fields.fields import Base64ImageField
 
-from recipes.models import (FavoriteRecipe, Ingredient, RecipeIngredient,
-                            Recipe, ShoppingCart, ShortLink, Tag)
+from recipes.models import (Ingredient, RecipeIngredient,
+                            Recipe, ShortLink, Tag)
 from users.constants import MAX_LENGTH_USER_CHARFIELD
 from users.models import Follower
 

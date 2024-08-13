@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Exists, OuterRef, Value, BooleanField
+from django.db.models import Exists, OuterRef, Value
 from django.db.models.functions import Coalesce
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -11,7 +11,7 @@ from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAdminUser, IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 
-from djoser.serializers import SetPasswordSerializer
+from djoser.views import UserViewSet as DjoserUserViewSet
 
 from api.filters import IngredientFilter, RecipeFilter
 from .mixins import RecipeListMixin
@@ -30,7 +30,7 @@ from users.models import Follower
 User = get_user_model()
 
 
-class CustomUserViewSet(viewsets.ModelViewSet):
+class UserViewSet(DjoserUserViewSet):
     """
     Вьюсет для работы с пользователями.
     Обрабатываемые эндпоинты:
@@ -42,7 +42,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all()
     pagination_class = LimitPagePagination
-    serializer_class = UserSerializer
 
     def get_permissions(self):
         if self.action in ('create', 'retrieve', 'list'):
@@ -58,34 +57,9 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             return UserCreateSerializer
         elif self.action in ['retrieve', 'list']:
             return UserSerializer
+        elif self.action == 'avatar':
+            return AvatarUserSerializer
         return super().get_serializer_class()
-
-    @action(methods=['get'], detail=False,
-            permission_classes=[IsAuthenticated])
-    def me(self, request, *args, **kwargs):
-        """
-        Получение информации о текущем аутентифицированном пользователе.
-        """
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
-
-    @action(methods=['post'], detail=False,
-            permission_classes=[IsAuthenticated])
-    def set_password(self, request, *args, **kwargs):
-        """
-        Изменение пароля текущего пользователя.
-        """
-        serializer = SetPasswordSerializer(data=request.data,
-                                           context={'request': request})
-        if serializer.is_valid():
-            user = request.user
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['put'], url_path='me/avatar',
             permission_classes=[IsAuthenticated])
@@ -137,7 +111,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             permission_classes=[IsAuthenticated])
     def subscribe(self, request, pk=None):
         """Подписка на пользователей."""
-        user = self.request.user
+        user = request.user
         author = get_object_or_404(User, pk=pk)
 
         if user.id == author.id:
