@@ -16,6 +16,5 @@ router_v1.register('recipes', RecipeViewSet, basename='recipes')
 urlpatterns = [
     path('', include(router_v1.urls)),
     path('recipes/<int:recipe_id>/get-link/', get_short_link, name='get-link'),
-    path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
 ]

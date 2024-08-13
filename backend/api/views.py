@@ -7,21 +7,18 @@ from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view
-from rest_framework.permissions import (AllowAny, IsAuthenticated,
-                                        IsAdminUser, IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-
 from djoser.views import UserViewSet as DjoserUserViewSet
 
 from api.filters import IngredientFilter, RecipeFilter
-from .mixins import RecipeListMixin
+from api.mixins import RecipeListMixin
 from api.pagination import LimitPagePagination
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import (AvatarUserSerializer, UserCreateSerializer,
-                             UserSerializer, IngredientSerializer,
+from api.serializers import (AvatarUserSerializer, IngredientSerializer,
                              RecipeCreateSerializer, RecipeGetSerializer,
-                             ShortLinkSerializer,
-                             SubscriptionSerializer, TagSerializer,)
+                             ShortLinkSerializer, SubscriptionSerializer,
+                             TagSerializer)
 from api.shopping_cart import get_shopping_list
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe,
                             ShortLink, ShoppingCart, Tag)
@@ -33,33 +30,15 @@ User = get_user_model()
 class UserViewSet(DjoserUserViewSet):
     """
     Вьюсет для работы с пользователями.
-    Обрабатываемые эндпоинты:
-    - GET /users/: Список всех пользователей (с пагинацией).
-    - POST /users/: Создание нового пользователя.
-    - GET /users/{id}/: Получение профиля пользователя по ID.
-    - GET /users/me/: Получение профиля текущего пользователя.
     """
 
     queryset = User.objects.all()
     pagination_class = LimitPagePagination
 
     def get_permissions(self):
-        if self.action in ('create', 'retrieve', 'list'):
-            self.permission_classes = (AllowAny, )
-        elif self.action in ('update', 'partial_update', 'destroy'):
-            self.permission_classes = (IsAuthorOrReadOnly, IsAdminUser)
-        else:
-            self.permission_classes = (IsAuthenticatedOrReadOnly, )
+        if self.action in ('list', 'retrieve'):
+            return (AllowAny(),)
         return super().get_permissions()
-
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return UserCreateSerializer
-        elif self.action in ['retrieve', 'list']:
-            return UserSerializer
-        elif self.action == 'avatar':
-            return AvatarUserSerializer
-        return super().get_serializer_class()
 
     @action(detail=False, methods=['put'], url_path='me/avatar',
             permission_classes=[IsAuthenticated])
@@ -109,10 +88,10 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(methods=['post', 'delete'], detail=True,
             permission_classes=[IsAuthenticated])
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, id=None):
         """Подписка на пользователей."""
         user = request.user
-        author = get_object_or_404(User, pk=pk)
+        author = get_object_or_404(User, pk=id)
 
         if user.id == author.id:
             return Response(
@@ -228,7 +207,8 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное текущего пользователя."""
         self.model_class = FavoriteRecipe
@@ -242,7 +222,8 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
         self.action_name = 'избранное'
         return self.remove_from_list(request, pk)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок текущего пользователя."""
         self.model_class = ShoppingCart
