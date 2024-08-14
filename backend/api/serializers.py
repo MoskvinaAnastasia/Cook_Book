@@ -117,9 +117,11 @@ class RecipeGetSerializer(serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True, required=True)
-    ingredients = RecipeIngredientSerializer(many=True,
-                                             source='ingredient_amounts',
-                                             required=True)
+    ingredients = RecipeIngredientSerializer(
+        many=True,
+        source='ingredient_amounts',
+        required=True
+    )
     is_favorited = serializers.BooleanField(default=False)
     is_in_shopping_cart = serializers.BooleanField(default=False)
     image = Base64ImageField(required=True)
@@ -175,7 +177,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                   'name', 'text', 'cooking_time')
 
     def validate_cooking_time(self, value):
-        """Проверяет, что время приготовления больше 0."""
 
         if value == 0:
             raise serializers.ValidationError(
@@ -228,34 +229,29 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
 
-        try:
-            recipe = Recipe.objects.create(**validated_data)
-            recipe.tags.set(tags)
-            ingredient_ids = [ingredient_data.get('id')
-                              for ingredient_data in ingredients_data]
-            ingredients = Ingredient.objects.filter(id__in=ingredient_ids)
-            ingredient_dict = {
-                ingredient.id: ingredient for ingredient in ingredients}
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
 
-            recipe_ingredients = []
-            for ingredient_data in ingredients_data:
-                ingredient_id = ingredient_data.get('id')
-                amount = ingredient_data.get('amount')
-                ingredient = ingredient_dict.get(ingredient_id)
-                if ingredient:
-                    recipe_ingredients.append(
-                        RecipeIngredient(
-                            recipe=recipe,
-                            ingredient=ingredient,
-                            amount=amount
-                        )
+        ingredient_ids = [ingredient_data.get('id')
+                          for ingredient_data in ingredients_data]
+        ingredients = Ingredient.objects.filter(id__in=ingredient_ids)
+        ingredient_dict = {
+            ingredient.id: ingredient for ingredient in ingredients}
+
+        recipe_ingredients = []
+        for ingredient_data in ingredients_data:
+            ingredient_id = ingredient_data.get('id')
+            amount = ingredient_data.get('amount')
+            ingredient = ingredient_dict.get(ingredient_id)
+            if ingredient:
+                recipe_ingredients.append(
+                    RecipeIngredient(
+                        recipe=recipe,
+                        ingredient=ingredient,
+                        amount=amount
                     )
-            RecipeIngredient.objects.bulk_create(recipe_ingredients)
-
-        except Exception as e:
-            print(f"Ошибка при создании рецепта: {e}")
-            raise
-
+                )
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
         return recipe
 
     def create_ingredients(self, ingredients, recipe):

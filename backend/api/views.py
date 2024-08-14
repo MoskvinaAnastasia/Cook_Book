@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Exists, OuterRef, Value
-from django.db.models.functions import Coalesce
+from django.db.models import BooleanField, Exists, OuterRef, Value
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
 
@@ -148,11 +147,7 @@ def get_short_link(request, recipe_id):
     """
     Получение или создание короткой ссылки для рецепта.
     """
-    try:
-        recipe = Recipe.objects.get(id=recipe_id)
-    except Recipe.DoesNotExist:
-        return Response({'detail': 'Рецепт не найден.'},
-                        status=status.HTTP_404_NOT_FOUND)
+    recipe = get_object_or_404(Recipe, id=recipe_id)
 
     short_link, created = ShortLink.objects.get_or_create(recipe=recipe)
 
@@ -180,20 +175,26 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
-        user = (self.request.user if self.request.user.is_authenticated
-                else None)
-        favorite_subquery = FavoriteRecipe.objects.filter(
-            user=user if user else Value(None),
-            recipe=OuterRef('pk')
-        )
-        shopping_cart_subquery = ShoppingCart.objects.filter(
-            user=user if user else Value(None),
-            recipe=OuterRef('pk')
-        )
-        queryset = queryset.annotate(
-            is_favorited=Coalesce(Exists(favorite_subquery), False),
-            is_in_shopping_cart=Coalesce(Exists(shopping_cart_subquery), False)
-        )
+
+        if self.request.user.is_authenticated:
+            favorite_subquery = FavoriteRecipe.objects.filter(
+                user=self.request.user,
+                recipe=OuterRef('pk')
+            )
+            shopping_cart_subquery = ShoppingCart.objects.filter(
+                user=self.request.user,
+                recipe=OuterRef('pk')
+            )
+            queryset = queryset.annotate(
+                is_favorited=Exists(favorite_subquery),
+                is_in_shopping_cart=Exists(shopping_cart_subquery)
+            )
+        else:
+            queryset = queryset.annotate(
+                is_favorited=Value(False, output_field=BooleanField()),
+                is_in_shopping_cart=Value(False, output_field=BooleanField())
+            )
+
         return queryset
 
     def get_serializer_class(self):
@@ -216,7 +217,7 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
         return self.add_to_list(request, pk)
 
     @favorite.mapping.delete
-    def delete_favorite(self, request, pk=None):
+    def remove_favorite(self, request, pk=None):
         """Удалить рецепт из избранного текущего пользователя."""
         self.model_class = FavoriteRecipe
         self.action_name = 'избранное'
@@ -225,19 +226,20 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
-        """Добавить рецепт в список покупок текущего пользователя."""
+        """Добавить рецепт в корзину текущего пользователя."""
         self.model_class = ShoppingCart
-        self.action_name = 'список покупок'
+        self.action_name = 'корзина'
         return self.add_to_list(request, pk)
 
     @shopping_cart.mapping.delete
-    def delete_shopping_cart(self, request, pk=None):
-        """Удалить рецепт из списка покупок текущего пользователя."""
+    def remove_shopping_cart(self, request, pk=None):
+        """Удалить рецепт из корзины текущего пользователя."""
         self.model_class = ShoppingCart
-        self.action_name = 'список покупок'
+        self.action_name = 'корзина'
         return self.remove_from_list(request, pk)
 
-    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['get'],
+            permission_classes=[IsAuthenticated])
     def get_link(self, request, pk=None):
         """Получить короткую ссылку на рецепт."""
         recipe = self.get_object()
