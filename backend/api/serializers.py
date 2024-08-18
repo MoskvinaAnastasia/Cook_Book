@@ -77,6 +77,12 @@ class AvatarUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('avatar',)
 
+    def validate_avatar(self, value):
+        """Проверяет, что поле avatar передано."""
+        if not value:
+            raise serializers.ValidationError('Поле avatar обязательно.')
+        return value
+
 
 class IngredientSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
