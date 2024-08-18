@@ -30,6 +30,7 @@ services:
     volumes:
       - ../frontend/:/app/result_build/
 
+
   nginx:
     container_name: foodgram-proxy
     image: moskvinaanastasia/foodgram_gateway
