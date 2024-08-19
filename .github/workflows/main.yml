@@ -1,9 +1,9 @@
 name: Main Foodgram workflow
 
 on:
-  push:
-    branches:
-      - main
+  #push:
+   # branches:
+      - main1
 
 jobs:
   tests:
@@ -139,7 +139,7 @@ jobs:
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
           sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
-  
+  '''
   send_message:
     runs-on: ubuntu-latest
     needs: deploy
@@ -155,3 +155,4 @@ jobs:
             Ссылка на коммит: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
             Сообщение коммита: ${{ github.event.head_commit.message }}
             Время: ${{ github.event.head_commit.timestamp }}
+  '''
