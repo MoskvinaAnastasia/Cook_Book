@@ -5,7 +5,7 @@ on:
 
 
 jobs:
-  scp and ssh:
+  scp_and_ssh:
     runs-on: ubuntu-latest
     steps:
       - name: copy docker-compose
