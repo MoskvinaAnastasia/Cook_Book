@@ -152,8 +152,8 @@ def get_short_link(request, recipe_id):
 @permission_classes([AllowAny])
 def redirect_short_link(request, short_link):
     """Перенаправляет на соответствующий рецепт по короткой ссылке."""
-    get_object_or_404(ShortLink, short_link=short_link)
-    return redirect(short_link)
+    short_link_obj = get_object_or_404(ShortLink, short_link=short_link)
+    return redirect(short_link_obj.recipe.get_absolute_url())
 
 
 class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
