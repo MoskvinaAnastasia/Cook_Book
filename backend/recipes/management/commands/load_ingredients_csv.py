@@ -17,6 +17,8 @@ class Command(BaseCommand):
         ) as ingredients:
             if Ingredient.objects.count() < 1:
                 ingredients_to_load = []
-                for row in DictReader(ingredients, fieldnames=['name', 'measurement_unit']):
+                for row in DictReader(
+                    ingredients, fieldnames=['name', 'measurement_unit']
+                ):
                     ingredients_to_load.append(Ingredient(**row))
                 Ingredient.objects.bulk_create(ingredients_to_load)
