@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import BooleanField, Exists, OuterRef, Value
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
-# from django.urls import reverse
+from django.urls import reverse
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -152,10 +152,7 @@ def get_short_link(request, recipe_id):
 def redirect_short_link(request, short_link):
     """Перенаправляет на соответствующий рецепт по короткой ссылке."""
     short_link_obj = get_object_or_404(ShortLink, short_link=short_link)
-#    return redirect(reverse('recipe_detail', args=[short_link_obj.recipe.pk]))
-    redirect_url = ('https://nastuxa-foodgram.hopto.org/'
-                    f'recipes/{short_link_obj.recipe.id}/')
-    return redirect(redirect_url)
+    return redirect(reverse('recipes-detail', args=[short_link_obj.recipe.pk]))
 
 
 class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
