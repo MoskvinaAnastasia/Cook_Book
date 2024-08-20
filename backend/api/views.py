@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import BooleanField, Exists, OuterRef, Value
 from django.http import FileResponse
@@ -153,9 +152,8 @@ def get_short_link(request, recipe_id):
 @permission_classes([AllowAny])
 def redirect_short_link(request, short_link):
     """Перенаправляет на соответствующий рецепт по короткой ссылке."""
-    short_link_obj = get_object_or_404(ShortLink, short_link=short_link)
-    frontend_url = f'{settings.SITE_HOSTNAME}/recipes/{short_link_obj.recipe.id}/'
-    return redirect(frontend_url)
+    get_object_or_404(ShortLink, short_link=short_link)
+    return redirect(short_link)
 
 
 class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
