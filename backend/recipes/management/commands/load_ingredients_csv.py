@@ -17,6 +17,6 @@ class Command(BaseCommand):
         ) as ingredients:
             if Ingredient.objects.count() < 1:
                 for row in DictReader(ingredients):
-                    name, measure = row.split(',')
+                    name, measure = row[0], row[1]
                     instance = Ingredient(name=name, measurement_unit=measure)
                     instance.save()
