@@ -1,6 +1,8 @@
 from io import BytesIO
+
 from django.contrib.auth.models import User
 from django.db.models import Sum
+
 from recipes.models import Recipe, RecipeIngredient
 
 

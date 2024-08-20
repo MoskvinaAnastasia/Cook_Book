@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
-from .models import (Ingredient, FavoriteRecipe, Recipe,
-                     RecipeIngredient, ShoppingCart, Tag)
+from .models import (FavoriteRecipe, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
 
 
 @admin.register(Ingredient)

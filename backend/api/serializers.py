@@ -2,18 +2,15 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import transaction
+from djoser.serializers import \
+    UserCreateSerializer as DjoserUserCreateSerializer
+from djoser.serializers import UserSerializer as DjoserUserSerializer
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 
-from djoser.serializers import UserSerializer as DjoserUserSerializer
-from djoser.serializers import (
-    UserCreateSerializer as DjoserUserCreateSerializer)
-from drf_extra_fields.fields import Base64ImageField
-
-from recipes.models import (Ingredient, RecipeIngredient,
-                            Recipe, ShortLink, Tag)
+from recipes.models import Ingredient, Recipe, RecipeIngredient, ShortLink, Tag
 from users.constants import MAX_LENGTH_USER_CHARFIELD
 from users.models import Follower
-
 
 User = get_user_model()
 
