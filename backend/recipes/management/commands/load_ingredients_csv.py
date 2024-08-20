@@ -16,7 +16,6 @@ class Command(BaseCommand):
             DATA_DIR / 'ingredients.csv', encoding='utf-8'
         ) as ingredients:
             if Ingredient.objects.count() < 1:
-                for row in DictReader(ingredients):
-                    name, measure = row[0], row[1]
-                    instance = Ingredient(name=name, measurement_unit=measure)
+                for row in DictReader(ingredients, fieldnames=['name', 'measurement_unit']):
+                    instance = Ingredient(**row)
                     instance.save()
