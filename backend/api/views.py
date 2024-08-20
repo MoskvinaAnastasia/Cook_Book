@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import BooleanField, Exists, OuterRef, Value
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse
+# from django.urls import reverse
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -142,9 +142,7 @@ def get_short_link(request, recipe_id):
     Получение или создание короткой ссылки для рецепта.
     """
     recipe = get_object_or_404(Recipe, id=recipe_id)
-
     short_link, created = ShortLink.objects.get_or_create(recipe=recipe)
-
     serializer = ShortLinkSerializer(short_link)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -154,7 +152,10 @@ def get_short_link(request, recipe_id):
 def redirect_short_link(request, short_link):
     """Перенаправляет на соответствующий рецепт по короткой ссылке."""
     short_link_obj = get_object_or_404(ShortLink, short_link=short_link)
-    return redirect(reverse('recipe_detail', args=[short_link_obj.recipe.pk]))
+#    return redirect(reverse('recipe_detail', args=[short_link_obj.recipe.pk]))
+    redirect_url = ('https://nastuxa-foodgram.hopto.org/'
+                    f'recipes/{short_link_obj.recipe.id}/')
+    return redirect(redirect_url)
 
 
 class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
@@ -234,7 +235,7 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
         return self.remove_from_list(request, pk)
 
     @action(detail=True, methods=['get'],
-            permission_classes=[IsAuthenticated])
+            permission_classes=[AllowAny])
     def get_link(self, request, pk=None):
         """Получить короткую ссылку на рецепт."""
         recipe = self.get_object()
