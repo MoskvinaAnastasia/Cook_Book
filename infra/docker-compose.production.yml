@@ -30,7 +30,7 @@ services:
 
   nginx:
     container_name: foodgram-proxy
-    image: foodgram_gateway
+    image: moskvinaanastasia/foodgram_gateway
     volumes:
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static:/usr/share/nginx/html/
