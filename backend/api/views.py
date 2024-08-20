@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import BooleanField, Exists, OuterRef, Value
 from django.http import FileResponse
@@ -5,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from djoser.views import UserViewSet as DjoserUserViewSet
@@ -149,10 +150,12 @@ def get_short_link(request, recipe_id):
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def redirect_short_link(request, short_link):
     """Перенаправляет на соответствующий рецепт по короткой ссылке."""
     short_link_obj = get_object_or_404(ShortLink, short_link=short_link)
-    return redirect('recipes-detail', pk=short_link_obj.recipe.id)
+    frontend_url = f'{settings.SITE_HOSTNAME}/recipes/{short_link_obj.recipe.id}/'
+    return redirect(frontend_url)
 
 
 class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
