@@ -16,6 +16,7 @@ class Command(BaseCommand):
             DATA_DIR / 'ingredients.csv', encoding='utf-8'
         ) as ingredients:
             if Ingredient.objects.count() < 1:
+                ingredients_to_load = []
                 for row in DictReader(ingredients, fieldnames=['name', 'measurement_unit']):
-                    instance = Ingredient(**row)
-                    instance.save()
+                    ingredients_to_load.append(Ingredient(**row))
+                Ingredient.objects.bulk_create(ingredients_to_load)
