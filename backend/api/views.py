@@ -1,14 +1,3 @@
-from django.contrib.auth import get_user_model
-from django.db.models import BooleanField, Exists, OuterRef, Value
-from django.http import FileResponse
-from django.shortcuts import get_object_or_404, redirect
-from django_filters.rest_framework import DjangoFilterBackend
-from djoser.views import UserViewSet as DjoserUserViewSet
-from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
-
 from api.filters import IngredientFilter, RecipeFilter
 from api.mixins import RecipeListMixin
 from api.pagination import LimitPagePagination
@@ -18,8 +7,18 @@ from api.serializers import (AvatarUserSerializer, IngredientSerializer,
                              ShortLinkSerializer, SubscriptionSerializer,
                              TagSerializer)
 from api.shopping_cart import get_shopping_list
+from django.contrib.auth import get_user_model
+from django.db.models import BooleanField, Exists, OuterRef, Value
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404, redirect
+from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet as DjoserUserViewSet
 from recipes.models import (FavoriteRecipe, Ingredient, Recipe, ShoppingCart,
                             ShortLink, Tag)
+from rest_framework import status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from users.models import Follower
 
 User = get_user_model()

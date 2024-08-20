@@ -2,7 +2,6 @@ import random
 import string
 
 from django.db import models
-
 from users.models import User
 
 from .constants import MAX_LENGTH_NAME_CHARFIELD, MAX_LENGTH_TAG

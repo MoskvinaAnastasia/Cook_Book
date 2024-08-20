@@ -1,7 +1,6 @@
+from api.serializers import RecipeResponseSerializer
 from rest_framework import status
 from rest_framework.response import Response
-
-from api.serializers import RecipeResponseSerializer
 
 
 class RecipeListMixin:
