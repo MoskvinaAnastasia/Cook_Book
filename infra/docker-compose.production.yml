@@ -34,7 +34,6 @@ services:
     container_name: foodgram-proxy
     image: moskvinaanastasia/foodgram_gateway
     volumes:
-      # - ../docs/:/usr/share/nginx/html/api/docs/
       - static:/usr/share/nginx/html/
       - bstatic:/usr/share/nginx/html/backend/static/
       - bmedia:/usr/share/nginx/html/backend/media/
