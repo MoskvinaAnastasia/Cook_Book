@@ -161,7 +161,7 @@ class RecipeViewSet(RecipeListMixin, viewsets.ModelViewSet):
     pagination_class = LimitPagePagination
     filterset_class = RecipeFilter
     filter_backends = (DjangoFilterBackend,)
-    ordering = ('-pub_date',)
+    ordering = ('-id',)
 
     def get_queryset(self):
         queryset = Recipe.objects.all()
