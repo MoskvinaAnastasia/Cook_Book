@@ -1,5 +1,6 @@
 # ![Main Foodgram workflow](https://github.com/MoskvinaAnastasia/foodgram/actions/workflows/main.yml/badge.svg)
 
+<<<<<<< HEAD
 ## Стек использованных технологий
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -142,3 +143,5 @@
 
 ## Автор проекта
 [MoskvinaAnastasia](https://github.com/MoskvinaAnastasia/)
+=======
+>>>>>>> 10e92ccf90daed49bf0e17a6d872d77b6100fcc8
